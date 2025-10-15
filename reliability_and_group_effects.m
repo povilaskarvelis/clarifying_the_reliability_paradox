@@ -1,4 +1,4 @@
-%% Code for "Clarifying the Reliability Paradox: Poor Test-Retest Reliability 
+%% Code for "Clarifying the Reliability Paradox: Poor Measurement Reliability 
 % Attenuates Group Differences"
 % Authors: Povilas Karvelis & Andreea Diaconescu (2025)
 %
@@ -220,7 +220,7 @@ colorbar;
 xlim(vr); ylim(vr);
 view(2);
 
-%% GROUP DIFFERENCES VS. RELIABILITY (Combined)
+%% GROUP DIFFERENCES VS. RELIABILITY 
 % This figure presents three rows of plots in a 3×3 grid.
 % The top two rows correspond to the performance simulation (illustrative and surface plots),
 % and the bottom row shows the corresponding results for the trait simulation.
@@ -313,8 +313,9 @@ colorbar; clim([0 1.5]); xlim(vr); ylim(vr);
 view(2);
 
 %% EFFECT SIZES AND P-VALUES AS A FUNCTION OF RELIABILITY
-% This section examines how effect sizes and p-values change as a function 
-% of reliability for different effects size metrics and statistical tests
+% This section examines how effect sizes,  p-values and required sample 
+% sizes change as a function of reliability for different effects size 
+% metrics and statistical tests
 
 ss = 1000000;           % Sample size for this analysis
 x1 = randn([ss,1]);     % True sample for performance
@@ -348,16 +349,19 @@ for j = 1:2
         xl = x1t(tr < median(tr));   % Low-trait subgroup
         dmsc(i,j) = cohensd(xh, xl, 'two-sample');  % Compute effect size (Cohen's d)
     
-        % Compute rank-biserial correlation (normalized z-value from ranksum test)
+        % Compute rank-biserial correlation from Mann-Whitney U statistic (exact)
         [~,~,stats] = ranksum(xh, xl);
-        urc(i,j) = stats.zval / sqrt(numel(x1t)); 
+        n1 = length(xh);
+        n2 = length(xl);
+        U  = stats.ranksum - n1*(n1+1)/2;   % U statistic for group xh
+        urc(i,j) = 2*U/(n1*n2) - 1;         % r_rb = 2*U/(n1*n2) - 1
     end
 end
 
 % Plot the effect sizes as a function of reliability (ICC)
 figure('WindowStyle','docked', 'Name', 'Effect Sizes and P-values vs. Reliability');
 
-subplot(1,2,1)
+subplot(2,1,1)
 plot(icce, rc(:,1) ./ max(rc(:,1)), 'LineWidth', 2); hold on;
 plot(icce, dmsc(:,1) ./ max(dmsc(:,1)), 'LineWidth', 2);
 plot(icce, urc(:,1) ./ max(urc(:,1)), 'LineWidth', 2);
@@ -369,7 +373,7 @@ legend({'Pearson''s r', 'Cohen''s d', 'Rank-biserial r_{rb}'}, 'FontSize', 14);
 title('r_{true} = 0.5');
 
 % Create an inset axes for additional data (r_true = 0.9)
-axes('Position', [0.32, 0.24, 0.12, 0.3]);
+axes('Position', [0.57, 0.62, 0.30, 0.18]);
 plot(icce, rc(:,2) ./ max(rc(:,2)), 'LineWidth', 2); hold on;
 plot(icce, dmsc(:,2) ./ max(dmsc(:,2)), 'LineWidth', 2);
 plot(icce, urc(:,2) ./ max(urc(:,2)), 'LineWidth', 2);
@@ -384,7 +388,7 @@ x2 = randn([ss,1]);    % Independent sample
 
 b = 0.5;
 N = 30;
-vr = [0.01,1];
+vr = [0.01,2];
 es = linspace(vr(1), vr(2), N);
 
 for i = 1:N
@@ -407,11 +411,43 @@ for i = 1:N
 end
 
 % Plot p-values versus reliability
-subplot(1,2,2)
+subplot(2,2,3)
 plot(mean(iccp,2), mean(rp,2), 'LineWidth', 2); hold on;
 plot(mean(iccp,2), mean(dp,2), 'LineWidth', 2); hold on;
 plot(mean(iccp,2), mean(up,2), 'LineWidth', 2);
-set(gca, 'FontSize', 14); ylim([0 0.15]);
+set(gca, 'FontSize', 14); ylim([0 0.25]); xlim([0 1]);
 xlabel('Reliability (ICC)'); 
 ylabel('p-value'); 
 title('r_{true} = 0.5; N = 60');
+
+% Required sample size vs. reliability for three metrics (matching r_true settings)
+subplot(2,2,4)
+alpha = 0.05;           % Two-sided alpha level
+power_target = 0.80;    % Desired power
+z_alpha = norminv(1 - alpha/2);
+z_beta = norminv(power_target);
+z_sum = (z_alpha + z_beta);
+
+% Use observed effect sizes under r_true = 0.5 (j = 1)
+r_obs = abs(rc(:,1));
+d_obs = abs(dmsc(:,1));
+rrb_obs = abs(urc(:,1)); 
+
+% Required total N for Pearson correlation (Fisher z transform)
+n_total_r = 3 + (z_sum ./ atanh(r_obs)).^2;
+
+% Required total N for two-sample t-test (median split Cohen's d)
+% Per-group n ~= 2*(z_sum)^2 / d^2  => total N = 4*(z_sum)^2 / d^2
+n_total_d = 4 * (z_sum.^2) ./ (d_obs.^2);
+
+% Required total N for rank-biserial correlation (with 4/3 factor for equal groups)
+n_total_rrb = (4/3) * (z_sum ./ rrb_obs).^2;
+
+% Plot all three sample size curves vs ICC
+plot(icce, n_total_r, 'LineWidth', 2); hold on;
+plot(icce, n_total_d, 'LineWidth', 2);
+plot(icce, n_total_rrb, 'LineWidth', 2);
+set(gca, 'FontSize', 14); ylim([0 300]);
+xlabel('Reliability (ICC)');
+ylabel('Required sample size');
+title('r_{true} = 0.5; \alpha = 0.05; 1-\beta = 0.80');

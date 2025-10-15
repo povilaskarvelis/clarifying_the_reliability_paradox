@@ -1,2 +1,1 @@
-# clarifying_the_reliability_paradox
-The code for reproducing results in Karvelis, P., &amp; Diaconescu, A. O. (2025). Clarifying the reliability paradox: poor test-retest reliability attenuates group differences. PsyArXiv
+The code for reproducing results in Karvelis, P., &amp; Diaconescu, A. O. (2025). Clarifying the reliability paradox: Poor measurement reliability attenuates group differences. Frontiers in Psychology, 16, 1592658. https://doi.org/10.3389/fpsyg.2025.1592658
